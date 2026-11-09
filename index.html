@@ -377,27 +377,35 @@
                             </button>
                         </div>
 
-                        <div v-if="cloudLessons.length > 0" class="mt-4 border rounded-lg overflow-hidden">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-gray-100 border-b">
-                                        <th class="p-3 text-sm font-bold text-gray-700 w-24">Mã Bài</th>
-                                        <th class="p-3 text-sm font-bold text-gray-700">Tên Bài Học</th>
-                                        <th class="p-3 text-sm font-bold text-gray-700 w-24 text-center">Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="lesson in cloudLessons" :key="lesson.id" class="border-b hover:bg-gray-50">
-                                        <td class="p-3 text-sm text-gray-600 font-mono">{{ lesson.id }}</td>
-                                        <td class="p-3 text-sm text-gray-800 font-medium">{{ lesson.name }}</td>
-                                        <td class="p-3 text-sm text-center">
-                                            <button @click="loadLesson(lesson.id)" :disabled="isSyncing" class="bg-blue-50 text-blue-600 px-3 py-1 rounded hover:bg-blue-100 font-medium text-xs disabled:opacity-50 transition-colors">
-                                                Tải về
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div v-if="cloudLessons.length > 0" class="mt-6 space-y-6">
+                            <div v-for="group in groupedLessons" :key="group.className">
+                                <h3 class="font-bold text-lg text-blue-700 mb-2 border-b-2 border-blue-200 pb-1 flex items-center gap-2">
+                                    <i class="fas fa-folder-open"></i> {{ group.className }}
+                                    <span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full ml-2">{{ group.lessons.length }} bài</span>
+                                </h3>
+                                <div class="border rounded-lg overflow-hidden shadow-sm">
+                                    <table class="w-full text-left border-collapse bg-white">
+                                        <thead>
+                                            <tr class="bg-gray-50 border-b">
+                                                <th class="p-3 text-sm font-bold text-gray-700 w-28">Mã Bài</th>
+                                                <th class="p-3 text-sm font-bold text-gray-700">Tên Bài Học</th>
+                                                <th class="p-3 text-sm font-bold text-gray-700 w-32 text-center">Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="lesson in group.lessons" :key="lesson.id" class="border-b hover:bg-gray-50 transition-colors">
+                                                <td class="p-3 text-sm text-gray-600 font-mono">{{ lesson.id }}</td>
+                                                <td class="p-3 text-sm text-gray-800 font-medium">{{ lesson.name }}</td>
+                                                <td class="p-3 text-sm text-center">
+                                                    <button @click="loadLesson(lesson.id)" :disabled="isSyncing" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-100 font-medium text-xs disabled:opacity-50 transition-colors flex items-center justify-center gap-1 mx-auto">
+                                                        <i class="fas fa-download"></i> Tải về
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                         <p v-else-if="!isSyncing" class="text-center text-gray-500 py-4 italic">Chưa có dữ liệu trên Cloud, hãy bấm Tải Danh Sách hoặc Lưu bài đầu tiên!</p>
                     </div>
@@ -407,7 +415,7 @@
     </div>
 
     <script>
-        const { createApp, ref, reactive } = Vue;
+        const { createApp, ref, reactive, computed } = Vue;
 
         // Cấu trúc mặc định ban đầu
         const createDefaultData = () => ({
@@ -593,6 +601,34 @@
                 const cloudLessons = ref([]);
                 const isSyncing = ref(false);
 
+                // Computed: Nhóm bài học theo Lớp
+                const groupedLessons = computed(() => {
+                    const groups = {};
+                    cloudLessons.value.forEach(lesson => {
+                        // Trích xuất số lớp từ ID (Ví dụ: "Lop10_Bai9" -> 10)
+                        const match = lesson.id.match(/^Lop(\d+)/i);
+                        let className = "Khác";
+                        let classNum = 999; // Để sắp xếp "Khác" xuống cuối cùng
+
+                        if (match) {
+                            classNum = parseInt(match[1], 10);
+                            className = "Lớp " + classNum;
+                        }
+
+                        if (!groups[className]) {
+                            groups[className] = {
+                                className: className,
+                                classNum: classNum,
+                                lessons: []
+                            };
+                        }
+                        groups[className].lessons.push(lesson);
+                    });
+
+                    // Chuyển sang mảng và sắp xếp theo khối lớp (10 -> 11 -> 12 -> Khác)
+                    return Object.values(groups).sort((a, b) => a.classNum - b.classNum);
+                });
+
                 const updateUrl = () => {
                     localStorage.setItem('gas_url', scriptUrl.value);
                 };
@@ -633,7 +669,7 @@
                         const res = await fetch(`${scriptUrl.value}?action=list`);
                         const result = await res.json();
                         if (result.status === 'success') {
-                            // Đảo ngược mảng để bài mới lưu hiển thị lên đầu
+                            // Cập nhật mảng (Computed property sẽ tự động chia nhóm lại)
                             cloudLessons.value = result.data.reverse(); 
                         } else showToast('Lỗi: ' + result.message, 'error');
                     } catch (e) {
@@ -665,7 +701,7 @@
                     data, toasts,
                     importJSON, exportJSON, autoFormatLatex,
                     // Variables and functions for Cloud Modal
-                    scriptUrl, showCloudModal, cloudLessons, isSyncing,
+                    scriptUrl, showCloudModal, cloudLessons, isSyncing, groupedLessons,
                     updateUrl, openCloudModal, saveToCloud, loadListFromCloud, loadLesson
                 };
             }
