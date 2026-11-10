@@ -53,6 +53,9 @@
                     <button @click="exportJSON" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow transition flex items-center gap-2">
                         <i class="fas fa-file-export"></i> <span class="hidden md:inline">Xuất JSON</span>
                     </button>
+                    <button @click="exportExamJSON" class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium shadow transition flex items-center gap-2" title="Xuất ra cấu trúc Đề Thi (math-exam-v1)">
+                        <i class="fas fa-file-code"></i> <span class="hidden md:inline">Xuất Đề Thi</span>
+                    </button>
                 </div>
             </div>
         </header>
@@ -510,13 +513,61 @@
                     reader.onload = (e) => {
                         try {
                             const parsed = JSON.parse(e.target.result);
-                            // Gán từng key để trigger reactivity
-                            Object.keys(createDefaultData()).forEach(key => {
-                                if(parsed[key] !== undefined) {
-                                    data[key] = parsed[key];
+                            
+                            // Tự động phát hiện nếu file là định dạng đề thi (math-exam-v1)
+                            if (parsed.format === "math-exam-v1") {
+                                // Khởi tạo trắng dữ liệu
+                                Object.assign(data, createDefaultData());
+                                data.ten_bai = parsed.title || "";
+                                data.lop = parseInt(parsed.grade) || 10;
+                                
+                                if (parsed.questions && Array.isArray(parsed.questions)) {
+                                    parsed.questions.forEach(q => {
+                                        if (q.type === 'mc') {
+                                            const dap_an_map = ['A', 'B', 'C', 'D'];
+                                            let correctIdx = (q.options || []).findIndex(o => o.correct);
+                                            if (correctIdx === -1) correctIdx = 0;
+                                            
+                                            data.trac_nghiem.push({
+                                                cau: q.stem || "",
+                                                phuong_an: [
+                                                    q.options[0]?.text || "",
+                                                    q.options[1]?.text || "",
+                                                    q.options[2]?.text || "",
+                                                    q.options[3]?.text || ""
+                                                ],
+                                                dap_an: dap_an_map[correctIdx],
+                                                giai_thich: (q.solution || []).join("\n"),
+                                                muc: "NB"
+                                            });
+                                        } else if (q.type === 'tf') {
+                                            data.dung_sai.push({
+                                                cau: q.stem || "",
+                                                y: (q.options || []).map(o => ({
+                                                    noi_dung: o.text || "",
+                                                    dung: !!o.correct
+                                                })),
+                                                giai_thich: (q.solution || []).join("\n")
+                                            });
+                                        } else if (q.type === 'short') {
+                                            data.tra_loi_ngan.push({
+                                                cau: q.stem || "",
+                                                dap_an: q.answer || "",
+                                                giai_thich: (q.solution || []).join("\n")
+                                            });
+                                        }
+                                    });
                                 }
-                            });
-                            showToast('Nhập file JSON thành công!', 'success');
+                                showToast('Nhập thành công từ định dạng Đề Thi (math-exam-v1)!', 'success');
+                            } else {
+                                // Import chuẩn bài học
+                                Object.keys(createDefaultData()).forEach(key => {
+                                    if(parsed[key] !== undefined) {
+                                        data[key] = parsed[key];
+                                    }
+                                });
+                                showToast('Nhập file JSON Bài Học thành công!', 'success');
+                            }
                         } catch (error) {
                             console.error(error);
                             showToast('File JSON không hợp lệ!', 'error');
@@ -546,6 +597,83 @@
                         showToast('Đã xuất file JSON!', 'success');
                     } catch(err) {
                         showToast('Lỗi khi xuất file!', 'error');
+                    }
+                };
+
+                // Xuất ra định dạng Đề Toán (math-exam-v1)
+                const exportExamJSON = () => {
+                    try {
+                        let qId = 1;
+                        const questions = [];
+                        
+                        data.trac_nghiem.forEach(tn => {
+                            const dap_an_map = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
+                            const correctIdx = dap_an_map[tn.dap_an] !== undefined ? dap_an_map[tn.dap_an] : 0;
+                            
+                            questions.push({
+                                id: `q${qId++}`,
+                                type: "mc",
+                                section: "Trắc nghiệm một phương án đúng",
+                                stem: tn.cau,
+                                options: tn.phuong_an.map((text, idx) => ({
+                                    text: text,
+                                    correct: idx === correctIdx
+                                })),
+                                solution: tn.giai_thich ? [tn.giai_thich] : [],
+                                figures: []
+                            });
+                        });
+                        
+                        data.dung_sai.forEach(ds => {
+                            questions.push({
+                                id: `q${qId++}`,
+                                type: "tf",
+                                section: "Trắc nghiệm đúng sai",
+                                stem: ds.cau,
+                                options: ds.y.map(opt => ({
+                                    text: opt.noi_dung,
+                                    correct: opt.dung
+                                })),
+                                solution: ds.giai_thich ? [ds.giai_thich] : [],
+                                figures: []
+                            });
+                        });
+                        
+                        data.tra_loi_ngan.forEach(tln => {
+                            questions.push({
+                                id: `q${qId++}`,
+                                type: "short",
+                                section: "Trả lời ngắn",
+                                stem: tln.cau,
+                                answer: tln.dap_an,
+                                solution: tln.giai_thich ? [tln.giai_thich] : [],
+                                figures: []
+                            });
+                        });
+
+                        const examData = {
+                            format: "math-exam-v1",
+                            title: data.ten_bai || "Đề kiểm tra",
+                            grade: data.lop.toString(),
+                            duration: 90,
+                            questions: questions
+                        };
+
+                        const jsonString = JSON.stringify(examData, null, 2);
+                        const blob = new Blob([jsonString], { type: "application/json" });
+                        const url = URL.createObjectURL(blob);
+                        
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const safeName = (data.ten_bai || 'de_thi').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                        a.download = `de_thi_${safeName}.json`;
+                        a.click();
+                        
+                        URL.revokeObjectURL(url);
+                        showToast('Đã xuất file JSON định dạng Đề Thi!', 'success');
+                    } catch(err) {
+                        showToast('Lỗi khi xuất file Đề Thi!', 'error');
+                        console.error(err);
                     }
                 };
 
@@ -713,7 +841,7 @@
 
                 return {
                     data, toasts,
-                    importJSON, exportJSON, autoFormatLatex,
+                    importJSON, exportJSON, exportExamJSON, autoFormatLatex,
                     // Variables and functions for Cloud Modal
                     scriptUrl, showCloudModal, cloudLessons, isSyncing, groupedLessons, openGroups, toggleGroup,
                     updateUrl, openCloudModal, saveToCloud, loadListFromCloud, loadLesson
