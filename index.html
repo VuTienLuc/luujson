@@ -14,6 +14,8 @@
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .slide-enter-active, .slide-leave-active { transition: all 0.3s ease; }
         .slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-20px); }
+        /* CSS cho vùng hiển thị hình ảnh SVG */
+        .svg-container svg { max-width: 100%; max-height: 150px; width: auto; height: auto; }
     </style>
 </head>
 <body>
@@ -271,6 +273,26 @@
                                     <textarea v-model="tn.giai_thich" rows="2" class="w-full rounded border border-gray-300 p-2 text-sm outline-none"></textarea>
                                 </div>
                             </div>
+
+                            <!-- KHU VỰC HÌNH ẢNH SVG (Trắc Nghiệm) -->
+                            <div class="pl-12 mt-3 pt-3 border-t border-gray-100">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold text-gray-500"><i class="fas fa-image text-blue-500"></i> Hình ảnh SVG (Mã: [[svg:hinh_id]])</span>
+                                    <button @click="addFigure(tn)" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded transition"><i class="fas fa-plus"></i> Thêm hình</button>
+                                </div>
+                                <div v-for="(fig, fIdx) in tn.figures" :key="'fig'+fIdx" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2 p-2 bg-white rounded border border-gray-200 relative">
+                                    <button @click="removeFigure(tn, fIdx)" class="absolute top-1 right-1 text-red-400 hover:text-red-600 bg-white rounded-full p-1"><i class="fas fa-times"></i></button>
+                                    <div class="pr-4">
+                                        <input v-model="fig.id" type="text" placeholder="ID (vd: hinh1)" class="w-full rounded border border-gray-300 p-1.5 text-xs mb-2 font-mono">
+                                        <textarea v-model="fig.svg" rows="3" placeholder="<svg>...</svg>" class="w-full rounded border border-gray-300 p-1.5 text-xs font-mono outline-none"></textarea>
+                                    </div>
+                                    <div class="flex items-center justify-center bg-gray-50 border border-gray-200 rounded p-1 overflow-hidden" style="min-height: 100px;">
+                                        <div v-html="fig.svg" class="w-full h-full flex justify-center items-center svg-container"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- KẾT THÚC HÌNH ẢNH -->
+
                         </div>
                     </div>
                 </div>
@@ -314,6 +336,26 @@
                                 <label class="block text-xs font-bold text-gray-500 mb-1">Giải thích chung</label>
                                 <textarea v-model="ds.giai_thich" rows="2" class="w-full rounded border border-gray-300 p-2 text-sm outline-none"></textarea>
                             </div>
+
+                            <!-- KHU VỰC HÌNH ẢNH SVG (Đúng Sai) -->
+                            <div class="pl-12 mt-3 pt-3 border-t border-gray-100">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold text-gray-500"><i class="fas fa-image text-blue-500"></i> Hình ảnh SVG (Mã: [[svg:hinh_id]])</span>
+                                    <button @click="addFigure(ds)" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded transition"><i class="fas fa-plus"></i> Thêm hình</button>
+                                </div>
+                                <div v-for="(fig, fIdx) in ds.figures" :key="'figds'+fIdx" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2 p-2 bg-white rounded border border-gray-200 relative">
+                                    <button @click="removeFigure(ds, fIdx)" class="absolute top-1 right-1 text-red-400 hover:text-red-600 bg-white rounded-full p-1"><i class="fas fa-times"></i></button>
+                                    <div class="pr-4">
+                                        <input v-model="fig.id" type="text" placeholder="ID (vd: hinh1)" class="w-full rounded border border-gray-300 p-1.5 text-xs mb-2 font-mono">
+                                        <textarea v-model="fig.svg" rows="3" placeholder="<svg>...</svg>" class="w-full rounded border border-gray-300 p-1.5 text-xs font-mono outline-none"></textarea>
+                                    </div>
+                                    <div class="flex items-center justify-center bg-gray-50 border border-gray-200 rounded p-1 overflow-hidden" style="min-height: 100px;">
+                                        <div v-html="fig.svg" class="w-full h-full flex justify-center items-center svg-container"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- KẾT THÚC HÌNH ẢNH -->
+
                         </div>
                     </div>
                 </div>
@@ -350,6 +392,26 @@
                                     <textarea v-model="tln.giai_thich" rows="2" class="w-full rounded border border-gray-300 p-2 text-sm outline-none"></textarea>
                                 </div>
                             </div>
+
+                            <!-- KHU VỰC HÌNH ẢNH SVG (Trả lời ngắn) -->
+                            <div class="pl-12 mt-3 pt-3 border-t border-gray-100">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold text-gray-500"><i class="fas fa-image text-blue-500"></i> Hình ảnh SVG (Mã: [[svg:hinh_id]])</span>
+                                    <button @click="addFigure(tln)" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded transition"><i class="fas fa-plus"></i> Thêm hình</button>
+                                </div>
+                                <div v-for="(fig, fIdx) in tln.figures" :key="'figtln'+fIdx" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2 p-2 bg-white rounded border border-gray-200 relative">
+                                    <button @click="removeFigure(tln, fIdx)" class="absolute top-1 right-1 text-red-400 hover:text-red-600 bg-white rounded-full p-1"><i class="fas fa-times"></i></button>
+                                    <div class="pr-4">
+                                        <input v-model="fig.id" type="text" placeholder="ID (vd: hinh1)" class="w-full rounded border border-gray-300 p-1.5 text-xs mb-2 font-mono">
+                                        <textarea v-model="fig.svg" rows="3" placeholder="<svg>...</svg>" class="w-full rounded border border-gray-300 p-1.5 text-xs font-mono outline-none"></textarea>
+                                    </div>
+                                    <div class="flex items-center justify-center bg-gray-50 border border-gray-200 rounded p-1 overflow-hidden" style="min-height: 100px;">
+                                        <div v-html="fig.svg" class="w-full h-full flex justify-center items-center svg-container"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- KẾT THÚC HÌNH ẢNH -->
+
                         </div>
                     </div>
                 </div>
@@ -483,7 +545,7 @@
 
                 const addTracNghiem = () => {
                     data.trac_nghiem.push({
-                        cau: "", phuong_an: ["", "", "", ""], dap_an: "A", giai_thich: "", muc: "NB"
+                        cau: "", phuong_an: ["", "", "", ""], dap_an: "A", giai_thich: "", muc: "NB", figures: []
                     });
                 };
 
@@ -496,12 +558,22 @@
                             { noi_dung: "", dung: true },
                             { noi_dung: "", dung: false }
                         ], 
-                        giai_thich: ""
+                        giai_thich: "",
+                        figures: []
                     });
                 };
 
                 const addTraLoiNgan = () => {
-                    data.tra_loi_ngan.push({ cau: "", dap_an: "", giai_thich: "" });
+                    data.tra_loi_ngan.push({ cau: "", dap_an: "", giai_thich: "", figures: [] });
+                };
+
+                const addFigure = (question) => {
+                    if (!question.figures) question.figures = [];
+                    question.figures.push({ id: `hinh${question.figures.length + 1}`, svg: "" });
+                };
+
+                const removeFigure = (question, index) => {
+                    if (question.figures) question.figures.splice(index, 1);
                 };
 
                 // Nhập JSON từ file
@@ -538,7 +610,8 @@
                                                 ],
                                                 dap_an: dap_an_map[correctIdx],
                                                 giai_thich: (q.solution || []).join("\n"),
-                                                muc: "NB"
+                                                muc: "NB",
+                                                figures: q.figures || []
                                             });
                                         } else if (q.type === 'tf') {
                                             data.dung_sai.push({
@@ -547,13 +620,15 @@
                                                     noi_dung: o.text || "",
                                                     dung: !!o.correct
                                                 })),
-                                                giai_thich: (q.solution || []).join("\n")
+                                                giai_thich: (q.solution || []).join("\n"),
+                                                figures: q.figures || []
                                             });
                                         } else if (q.type === 'short') {
                                             data.tra_loi_ngan.push({
                                                 cau: q.stem || "",
                                                 dap_an: q.answer || "",
-                                                giai_thich: (q.solution || []).join("\n")
+                                                giai_thich: (q.solution || []).join("\n"),
+                                                figures: q.figures || []
                                             });
                                         }
                                     });
@@ -620,7 +695,7 @@
                                     correct: idx === correctIdx
                                 })),
                                 solution: tn.giai_thich ? [tn.giai_thich] : [],
-                                figures: []
+                                figures: tn.figures || []
                             });
                         });
                         
@@ -635,7 +710,7 @@
                                     correct: opt.dung
                                 })),
                                 solution: ds.giai_thich ? [ds.giai_thich] : [],
-                                figures: []
+                                figures: ds.figures || []
                             });
                         });
                         
@@ -647,7 +722,7 @@
                                 stem: tln.cau,
                                 answer: tln.dap_an,
                                 solution: tln.giai_thich ? [tln.giai_thich] : [],
-                                figures: []
+                                figures: tln.figures || []
                             });
                         });
 
@@ -842,6 +917,7 @@
                 return {
                     data, toasts,
                     importJSON, exportJSON, exportExamJSON, autoFormatLatex,
+                    addStringItem, removeStringItem, addBaiGiang, addViDu, addTracNghiem, addDungSai, addTraLoiNgan, addFigure, removeFigure,
                     // Variables and functions for Cloud Modal
                     scriptUrl, showCloudModal, cloudLessons, isSyncing, groupedLessons, openGroups, toggleGroup,
                     updateUrl, openCloudModal, saveToCloud, loadListFromCloud, loadLesson
